@@ -1,0 +1,65 @@
+## Overview
+Polygon zkEVM is a zero-knowledge rollup (zk-rollup) designed to emulate the Ethereum Virtual Machine (EVM). As a Layer 2 scaling solution for Ethereum, it allows for the aggregation of multiple transactions into a single batch. These batches are then submitted to Ethereum (Layer 1, or L1) where their integrity is verified using cryptographic proofs. This mechanism drastically reduces transaction costs and enhances scalability, while still leveraging Ethereum's security.
+
+Polygon zkEVM introduces several components including zkNode, zkProver, and zkEVM bridge to handle the processes of transaction execution, batching, verification, and cross-chain asset transfers.
+
+## Architecture
+Polygon zkEVM operates by collecting transactions, batching them, and then verifying them through a consensus contract. Below is a breakdown of the key components:
+![Architecture Diagram](https://docs.polygon.technology/img/zkEVM/fig1-simpl-arch.png)
+
+### 1. Consensus Contract
+The zkEVM uses the updated `PolygonZkEVMEtrog.sol` consensus contract, originally based on Proof of Donation (PoD). The current model operates with a **Proof of Efficiency** consensus, enabling permissionless participation while prioritizing security and decentralization.
+
+The consensus contract manages the following:
+- **Transaction batching**: Coordinators collect transactions and propose batches to be processed.
+- **Validation**: Aggregators validate these batches by producing ZK-proofs that attest to their correctness.
+
+For now, only one coordinator, known as the **trusted sequencer**, and one validator, the **trusted aggregator**, are operational to enhance security in this early phase.
+
+### 2. zkNode
+The zkNode is the core client software that governs zkEVM nodes. The trusted sequencer and aggregator run this software, which includes:
+- **Sequencer**: Collects and batches transactions from the pool DB, then submits them to Ethereum for validation.
+- **Aggregator**: Verifies the validity of the batches using zkProofs provided by the zkProver.
+
+### 3. zkProver
+The zkProver is the cryptographic engine responsible for generating zero-knowledge proofs that verify the correctness of state transitions. It consists of several state machines, and its task is to provide validity proofs for aggregated transaction batches, ensuring the system’s security and efficiency.
+
+### 4. zkEVM Bridge
+The zkEVM bridge allows users to transfer assets between Layer 1 (Ethereum) and Layer 2 (Polygon zkEVM). It is comprised of two smart contracts, one on each chain, which facilitate secure deposits and withdrawals of assets. This enables interoperability between Ethereum and the rollup.
+
+### 5. Verifier
+The verifier smart contract is a critical component in the zk-rollup architecture. It ensures the validity of every transaction batch by verifying zk-SNARK cryptographic proofs. The verifier is currently deployed on Ethereum mainnet and the Cardano testnet.
+
+## Transaction Lifecycle
+When users submit transactions to the zkEVM network, they are processed through the following stages:
+
+1. **Submission**: Users submit transactions to the **pool DB**, where they are temporarily stored.
+2. **Batching**: The **sequencer** fetches transactions from the pool DB, validates them, and groups them into batches.
+3. **Proposing to L1**: The sequencer proposes the transaction batches to the L1 consensus contract.
+4. **Proof Generation**: The **aggregator** creates a zero-knowledge proof using the zkProver, attesting to the validity of the sequencer's proposed state changes.
+5. **Verification**: The **verifier** smart contract on L1 checks the proof’s correctness, ensuring the batch's integrity before it's finalized on L1.
+
+## Incentive Structure
+To maintain a secure and efficient network, Polygon zkEVM incentivizes both the trusted sequencer and the trusted aggregator:
+- **Sequencer**: Receives fees from users for including their transactions in batches and pays L1 transaction fees.
+- **Aggregator**: Is paid in POL tokens by the sequencer for generating valid ZK-proofs.
+
+## On-Chain Data Availability
+Polygon zkEVM supports both full zk-rollup and hybrid models:
+1. **Validium**
+- **Data Storage**: In the Validium model, transaction data is stored off-chain, meaning that the actual data related to the transactions does not get posted to Ethereum (Layer 1).
+- **Proofs**: Only zero-knowledge proofs (zk-proofs) that attest to the validity of the transaction data are published on-chain (on Ethereum L1).
+- **Benefits**: Since data is kept off-chain, Validium drastically reduces the amount of data that needs to be stored and processed on Ethereum, leading to significantly lower gas fees.
+ - **Trade-offs**: Storing data off-chain can make it more difficult for users to reconstruct the complete state from the on-chain data, relying on external parties to store and provide access to the full dataset. Security is still maintained through zk-proofs, but users must trust the off-chain data storage providers to remain honest.
+2. **Volition**
+- **Data Storage**: Volition offers more flexibility compared to Validium. With Volition, developers or users can choose, on a per-transaction basis, whether to store the transaction data on-chain or off-chain.
+* For some transactions, both the data and proofs are published on-chain (like a full zk-rollup).
+* For other transactions, only zk-proofs are published on-chain, with the data stored off-chain (like Validium).
+- **Benefits**: Volition allows users or applications to make trade-offs between cost and security based on the nature of the transaction. Critical transactions can store data on-chain (increasing transparency and security but at a higher cost), while less sensitive data can be stored off-chain to save on gas fees.
+- **Trade-offs**: While it provides flexibility, there might still be an added layer of complexity in deciding when and how to store data on-chain versus off-chain, depending on the transaction’s requirements.
+
+
+
+## REFERCENCES
+- https://docs.polygon.technology/cdk/architecture/cdk-zkevm/?h=sequencer
+- https://docs.polygon.technology/zkEVM/architecture/
